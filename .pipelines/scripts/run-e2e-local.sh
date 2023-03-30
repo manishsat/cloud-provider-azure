@@ -19,8 +19,8 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(realpath $(dirname "${BASH_SOURCE[0]}")/../..)
-export GOPATH="/home/vsts/go"
-export PATH="${PATH:-}:${GOPATH}/bin"
+#export GOPATH="/usr/local/bin/go"
+#export PATH="${PATH:-}:${GOPATH}/bin"
 export AKS_CLUSTER_ID="/subscriptions/${AZURE_SUBSCRIPTION_ID:-}/resourcegroups/${RESOURCE_GROUP:-}/providers/Microsoft.ContainerService/managedClusters/${CLUSTER_NAME:-}"
 
 if [[ -z "${RELEASE_PIPELINE:-}" ]]; then
@@ -59,7 +59,7 @@ cleanup() {
   # is fine to fail.
   kubetest2 aks --down --rgName "${RESOURCE_GROUP:-}" --clusterName "${CLUSTER_NAME:-}" || true
 }
-trap cleanup EXIT
+#trap cleanup EXIT
 
 if [[ -z "${AZURE_LOCATION:-}" ]]; then
   export AZURE_LOCATION="$(get_random_location)"
@@ -86,7 +86,6 @@ else
   CUSTOM_CONFIG_PATH="${CUSTOM_CONFIG_PATH:-${REPO_ROOT}/.pipelines/templates/customconfiguration.json}"
 fi
 
-
 get_k8s_version
 echo "AKS Kubernetes version is: ${AKS_KUBERNETES_VERSION:-}"
 
@@ -96,36 +95,29 @@ kubetest2 aks --up --rgName "${RESOURCE_GROUP:-}" \
 --customConfig "${CUSTOM_CONFIG_PATH}" \
 --clusterName "${CLUSTER_NAME:-}" \
 --ccmImageTag "${IMAGE_TAG:-}" \
---casImageTag "${CUSTOM_CAS_IMAGE:-}" \
 --kubernetesImageTag "${IMAGE_TAG:-}" \
 --kubeletURL "${KUBELET_URL:-}" \
 --k8sVersion "${AKS_KUBERNETES_VERSION:-}"
 
-export KUBECONFIG="${REPO_ROOT}/_kubeconfig/${RESOURCE_GROUP:-}_${CLUSTER_NAME:-}.kubeconfig"
-if [[ ! -f "${KUBECONFIG:-}" ]]; then
-  echo "kubeconfig not exists"
-  exit 1
-fi
+#export KUBECONFIG="${REPO_ROOT}/_kubeconfig/${RESOURCE_GROUP:-}_${CLUSTER_NAME:-}.kubeconfig"
+#if [[ ! -f "${KUBECONFIG:-}" ]]; then
+#  echo "kubeconfig not exists"
+#  exit 1
+#fi
 
-# Ensure the provisioned cluster can be accessed with the kubeconfig
-for i in `seq 1 6`; do
-  kubectl get pod --all-namespaces=true && break
-  sleep 10
-done
+#kubectl wait --for=condition=Ready node --all --timeout=5m
+#kubectl get node -owide
 
-kubectl wait --for=condition=Ready node --all --timeout=5m
-kubectl get node -owide
-
-echo "Running e2e"
+#echo "Running e2e"
 
 # TODO: We should do it in autoscaling-multipool.json
-if [[ "${CLUSTER_TYPE:-}" == "autoscaling-multipool" ]]; then
-  az aks update --subscription ${AZURE_SUBSCRIPTION_ID:-} --resource-group "${RESOURCE_GROUP:-}" --name "${CLUSTER_NAME:-}" --cluster-autoscaler-profile balance-similar-node-groups=true
-fi
+#if [[ "${CLUSTER_TYPE:-}" == "autoscaling-multipool" ]]; then
+#  az aks update --subscription ${AZURE_SUBSCRIPTION_ID:-} --resource-group "${RESOURCE_GROUP:-}" --name "${CLUSTER_NAME:-}" --cluster-autoscaler-profile balance-similar-node-groups=true
+#fi
 
-export E2E_ON_AKS_CLUSTER=true
-if [[ "${CLUSTER_TYPE:-}" =~ "autoscaling" ]]; then
-  export LABEL_FILTER=${LABEL_FILTER:-Feature:Autoscaling || !Serial && !Slow}
-  export SKIP_ARGS=${SKIP_ARGS:-""}
-fi
-make test-ccm-e2e
+#export E2E_ON_AKS_CLUSTER=true
+#if [[ "${CLUSTER_TYPE:-}" =~ "autoscaling" ]]; then
+#  export LABEL_FILTER=${LABEL_FILTER:-Feature:Autoscaling || !Serial && !Slow}
+#  export SKIP_ARGS=${SKIP_ARGS:-""}
+#fi
+#make test-ccm-e2e

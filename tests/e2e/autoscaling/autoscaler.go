@@ -54,6 +54,7 @@ const (
 var _ = Describe("Cluster size autoscaler", Label(utils.TestSuiteLabelFeatureAutoscaling, utils.TestSuiteLabelSerial, utils.TestSuiteLabelSlow), func() {
 	var (
 		basename            = "autoscaler"
+		poolKey             = "cluster.x-k8s.io/owner-name"
 		cs                  clientset.Interface
 		ns                  *v1.Namespace
 		tc                  *utils.AzureTestClient
@@ -88,8 +89,12 @@ var _ = Describe("Cluster size autoscaler", Label(utils.TestSuiteLabelFeatureAut
 
 		initNodeCount = len(nodes)
 		utils.Logf("Initial number of schedulable nodes: %v", initNodeCount)
+		if os.Getenv(utils.AKSTestCCM) == "" {
+			initNodepoolNodeMap = utils.GetNodepoolNodeMapFromAnnotations(poolKey, &nodes)
+		} else {
+			initNodepoolNodeMap = utils.GetNodepoolNodeMap(&nodes)
+		}
 
-		initNodepoolNodeMap = utils.GetNodepoolNodeMap(&nodes)
 		utils.Logf("found %d node pools", len(initNodepoolNodeMap))
 
 		// TODO:
@@ -383,6 +388,7 @@ var _ = Describe("Cluster size autoscaler", Label(utils.TestSuiteLabelFeatureAut
 		waitForScaleUpToComplete(cs, ns, initNodeCount+1)
 		waitForScaleDownToComplete(cs, ns, initNodeCount, deployment)
 	})
+
 })
 
 func waitForScaleUpToComplete(cs clientset.Interface, ns *v1.Namespace, targetNodeCount int) {

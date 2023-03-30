@@ -37,7 +37,7 @@ const (
 	nodeLabelRole             = "kubernetes.io/role"
 	nodeOSLabel               = "kubernetes.io/os"
 	typeLabel                 = "type"
-	agentpoolLabelKey         = "agentpool"
+	agentpoolLabelKey         = "cluster.x-k8s.io/owner-name"
 
 	// GPUResourceKey is the key of the GPU in the resource map of a node
 	GPUResourceKey = "nvidia.com/gpu"
@@ -286,6 +286,21 @@ func GetNodepoolNodeMap(nodes *[]v1.Node) map[string][]string {
 			} else {
 				nodepoolNodeMap[nodepool] = append(nodepoolNodeMap[nodepool], node.Name)
 			}
+		}
+	}
+
+	return nodepoolNodeMap
+}
+
+func GetNodepoolNodeMapFromAnnotations(poolKey string, nodes *[]v1.Node) map[string][]string {
+	nodepoolNodeMap := make(map[string][]string)
+	for _, node := range *nodes {
+		annotations := node.ObjectMeta.Annotations
+		if nodepool, ok := annotations[poolKey]; ok {
+			if nodepoolNodeMap[nodepool] == nil {
+				nodepoolNodeMap[nodepool] = make([]string, 0)
+			}
+			nodepoolNodeMap[nodepool] = append(nodepoolNodeMap[nodepool], node.Name)
 		}
 	}
 
